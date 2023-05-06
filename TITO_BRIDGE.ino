@@ -25,44 +25,54 @@ unsigned int port_TCresponse = 51525;
 unsigned int port_TM = 51526;
 
 
-class Stack {
+class CircularQueue {
 public:
-    Stack() {
-        top = -1;
+    CircularQueue() {
+        front = rear = -1;
     }
 
     bool isFull() {
-        return top == MAX_QUEUE_SIZE - 1;
+        return (front==0 && rear == MAX_QUEUE_SIZE - 1) || (rear==front-1);
     }
 
     bool isEmpty() {
-        return top == -1;
+        return front == -1;
     }
 
-    bool push(char packet[]) {
+    bool enqueue(char packet[]) {
         if (isFull()) {
             return false;
         }
-        top++;
-        strncpy(packets[top], packet, MAX_SIZE);
+        if (front==-1){
+          front=0;
+        }
+        rear++;
+        strncpy(packets[rear], packet, MAX_SIZE);
         return true;
     }
 
-    bool pop(char packet[]) {
+    bool denqueue(char packet[]) {
         if (isEmpty()) {
             return false;
         }
-        strncpy(packet, packets[top], MAX_SIZE);
-        top--;
+        strncpy(packet, packets[front], MAX_SIZE);
+
+        if (rear==front){
+          rear=-1;
+          front=-1;
+        }
+        else{
+          front=front+1;          
+        }
         return true;
     }
 
 private:
     char packets[MAX_QUEUE_SIZE][MAX_SIZE];
-    int top;
+    int front, rear;
 };
 
-Stack stack;
+CircularQueue CircularQueue;
 
 // Crea los objetos WiFi y UDP
 WiFiUDP udp_TC, udp_TCresponse, udp_TM;
@@ -83,7 +93,10 @@ void receiveEvent(int bytesReceived) {
     {
         Serial.print("Enviando TM por UDP: ");
         Serial.println(bufferr);
-        int packetSize2 = udp_TM.parsePacket();
+        
+        //?
+        int packetSize2 = udp_TM.parsePacket(); 
+
         udp_TM.beginPacket(udp_TM.remoteIP(), udp_TM.remotePort());
         udp_TM.print(bufferr);
         udp_TM.endPacket();
@@ -104,9 +117,9 @@ void receiveEvent(int bytesReceived) {
 }
 
 void requestEvent() {
-  if (!stack.isEmpty()) {           //Busco en FIFO
+  if (!CircularQueue.isEmpty()) {           //Busco en FIFO
         char packet[MAX_SIZE];
-        if (stack.pop(packet)) {
+        if (CircularQueue.denqueue(packet)) {
           Serial.print("Enviando por I2C paquete: ");
           Serial.println(packet);
           Wire.write(packet); // Envía el mensaje al maestro
@@ -153,7 +166,7 @@ void setup() {
   Serial.print(port_TCresponse);
   Serial.print(", ");
   Serial.println(port_TM);
-  stack = Stack();
+  CircularQueue = CircularQueue();
 }
 
 
@@ -165,7 +178,7 @@ void loop() {
     udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);// Lee el mensaje recibido
     Serial.print("TC recibido: ");
     Serial.println(packetBuffer);
-    stack.push(packetBuffer);//Agrego dato a FIFO
+    CircularQueue.enqueue(packetBuffer);//Agrego dato a FIFO
   }
   int packetSize3 = udp_TM.parsePacket();
   int packetSize2 = udp_TCresponse.parsePacket();
