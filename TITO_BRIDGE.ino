@@ -119,10 +119,17 @@ void receiveEvent(int bytesReceived) {
 void requestEvent() {
   if (!CircularQueue.isEmpty()) {           //Busco en FIFO
         char packet[MAX_SIZE];
-        if (CircularQueue.denqueue(packet)) {
-          Serial.print("Enviando por I2C paquete: ");
+        char packet_size[MAX_SIZE];
+        if (CircularQueue.denqueue(packet_size)) {
+          
+          Serial.print("Enviando por I2C el tamaño del paquete: ");
+          Serial.println(packet_size);
+          Wire.write(packet_size); // Envía el tamaño del mensaje al maestro
+          
+          CircularQueue.denqueue(packet);
+          Serial.print("Enviando por I2C el paquete: ");
           Serial.println(packet);
-          Wire.write(packet); // Envía el mensaje al maestro
+          Wire.write(packet); // Envía del mensaje al maestro
         }
   }
 }
@@ -178,7 +185,8 @@ void loop() {
     udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);// Lee el mensaje recibido
     Serial.print("TC recibido: ");
     Serial.println(packetBuffer);
-    CircularQueue.enqueue(packetBuffer);//Agrego dato a FIFO
+    CircularQueue.enqueue(packetSize);      //Agrega tamaño del dato o comando a mandar
+    CircularQueue.enqueue(packetBuffer);   //Agrego dato o comando al rover
   }
   int packetSize3 = udp_TM.parsePacket();
   int packetSize2 = udp_TCresponse.parsePacket();
