@@ -116,7 +116,7 @@ void receiveEvent(int bytesReceived) {
   } 
 }
 
-void requestEvent() {
+void requestEvent() {  //Asegurarse que siempre se guarde bien en la Queue, primero size luego dato
   if (!CircularQueue.isEmpty()) {           //Busco en FIFO
         char packet[MAX_SIZE];
         char packet_size[MAX_SIZE];
