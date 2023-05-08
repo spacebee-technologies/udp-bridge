@@ -50,6 +50,9 @@ public:
         if (rear==MAX_QUEUE_SIZE - 1){
           rear=0;
         }
+        else{
+          rear++
+        }
         strncpy(packets[rear], packet, MAX_SIZE);
         size_packets[rear]=size_packet;
         return true;
