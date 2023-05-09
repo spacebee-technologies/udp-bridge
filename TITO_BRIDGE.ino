@@ -51,7 +51,7 @@ public:
           rear=0;
         }
         else{
-          rear++
+          rear++;
         }
         strncpy(packets[rear], packet, MAX_SIZE);
         size_packets[rear]=size_packet;
@@ -230,24 +230,24 @@ void setup() {
   unsigned short int size;
 
   Serial.print("Agregar a la Cola");
-  packetBuffer="Primer paquete";
+  strncpy(packetBuffer,"Primer paquete");
   size=static_cast<unsigned short int>(strlen(packetBuffer));
 
   Serial.println(packetBuffer);
-  CircularQueue.enqueue(packetSize,size); 
+  CircularQueue.enqueue(packetBuffer,size); 
 
   Serial.print("Agregar a la Cola");
-  packetBuffer="Segundo paquete";
+  strncpy(packetBuffer,"Segundo paquete");
   size=static_cast<unsigned short int>(strlen(packetBuffer));
 
   Serial.println(packetBuffer);
-  CircularQueue.enqueue(packetSize,size); 
+  CircularQueue.enqueue(packetBuffer,size); 
 
-    Serial.print("Agregar a la Cola");
-  packetBuffer="Tercer paquete";
+  Serial.print("Agregar a la Cola");
+  strncpy(packetBuffer,"Tercer paquete");
   size=static_cast<unsigned short int>(strlen(packetBuffer));
 
   Serial.println(packetBuffer);
-  CircularQueue.enqueue(packetSize,size); 
+  CircularQueue.enqueue(packetBuffer,size); 
 
 }
