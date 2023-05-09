@@ -228,26 +228,17 @@ void setup() {
 
   char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
   unsigned short int size;
+  int i=0;
 
+}
+
+void loop(){
+  i++;
   Serial.print("Agregar a la Cola");
-  strncpy(packetBuffer,"Primer paquete");
+  snprintf(packetBuffer, sizeof(packetBuffer), "paquete %d", i);
   size=static_cast<unsigned short int>(strlen(packetBuffer));
-
   Serial.println(packetBuffer);
   CircularQueue.enqueue(packetBuffer,size); 
 
-  Serial.print("Agregar a la Cola");
-  strncpy(packetBuffer,"Segundo paquete");
-  size=static_cast<unsigned short int>(strlen(packetBuffer));
-
-  Serial.println(packetBuffer);
-  CircularQueue.enqueue(packetBuffer,size); 
-
-  Serial.print("Agregar a la Cola");
-  strncpy(packetBuffer,"Tercer paquete");
-  size=static_cast<unsigned short int>(strlen(packetBuffer));
-
-  Serial.println(packetBuffer);
-  CircularQueue.enqueue(packetBuffer,size); 
-
+  sleep(100);
 }
