@@ -1,5 +1,4 @@
 #include <WiFi.h>
-#include <WiFiUDP.h>
 #include <ESPmDNS.h>
 #include <Wire.h>
 #include <stdio.h>
@@ -72,7 +71,7 @@ private:
     int front, rear;
 };
 
-CircularQueue CircularQueue;
+CircularQueue circularQueue;
 
 // Crea los objetos WiFi y UDP
 WiFiUDP udp_TC, udp_TCresponse, udp_TM;
@@ -117,9 +116,9 @@ void receiveEvent(int bytesReceived) {
 }
 
 void requestEvent() {
-  if (!CircularQueue.isEmpty()) {           //Busco en FIFO
+  if (!circularQueue.isEmpty()) {           //Busco en FIFO
         char packet[MAX_SIZE];
-        if (CircularQueue.denqueue(packet)) {
+        if (circularQueue.denqueue(packet)) {
           Serial.print("Enviando por I2C paquete: ");
           Serial.println(packet);
           Wire.write(packet); // Envía el mensaje al maestro
@@ -166,7 +165,7 @@ void setup() {
   Serial.print(port_TCresponse);
   Serial.print(", ");
   Serial.println(port_TM);
-  CircularQueue = CircularQueue();
+  circularQueue = CircularQueue();
 }
 
 
@@ -178,7 +177,7 @@ void loop() {
     udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);// Lee el mensaje recibido
     Serial.print("TC recibido: ");
     Serial.println(packetBuffer);
-    CircularQueue.enqueue(packetBuffer);//Agrego dato a FIFO
+    circularQueue.enqueue(packetBuffer);//Agrego dato a FIFO
   }
   int packetSize3 = udp_TM.parsePacket();
   int packetSize2 = udp_TCresponse.parsePacket();
