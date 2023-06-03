@@ -1,3 +1,5 @@
+#include <WiFi.h>
+#include <ESPmDNS.h>
 #include <Wire.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +32,7 @@ public:
     }
 
     bool isFull() {
-        return ((front==0 && rear == MAX_QUEUE_SIZE - 1) || (rear==front-1));
+        return (front==0 && rear == MAX_QUEUE_SIZE - 1) || (rear==front-1);
     }
 
     bool isEmpty() {
@@ -80,8 +82,6 @@ private:
     int size_packets[MAX_QUEUE_SIZE]; 
     int front, rear;
 };
-
-CircularQueue CircularQueue;
 
 CircularQueue circularQueue;
 
@@ -140,7 +140,7 @@ bool enviado_size=false;
 
 
 void requestEvent() {  
-  if (!CircularQueue.isEmpty()) {           //Busco en FIFO
+  if (!circularQueue.isEmpty()) {           //Busco en FIFO
      
     char packet[MAX_SIZE];
     int packet_size;
@@ -153,7 +153,7 @@ void requestEvent() {
     
     }
     if (enviarSize){  
-      CircularQueue.denqueue(packet,packet_size);
+      circularQueue.denqueue(packet,packet_size);
 
       Serial.println("Enviando largo.... ");
       Serial.print("Enviando por I2C el tamaño del paquete: ");
@@ -224,14 +224,15 @@ void setup() {
   Serial.print(", ");
   Serial.println(port_TM);
 
+  circularQueue = CircularQueue();
 }
+
 char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
 char size;
 int i;
 
 void loop(){
-
-int packetSize = udp_TC.parsePacket();
+  int packetSize = udp_TC.parsePacket();
   if (packetSize) {
     char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
     udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);// Lee el mensaje recibido
