@@ -23,6 +23,10 @@ unsigned int port_TC = 51524;
 unsigned int port_TCresponse = 51525;
 unsigned int port_TM = 51526;
 
+typedef enum StartingByte {
+  STARTING_BYTE_RECEIVE = 'P',
+  STARTING_BYTE_SEND = 'S'
+} StartingByte_t;
 
 class CircularQueue {
 public:
@@ -91,46 +95,30 @@ bool enviarSize;
 
 void receiveEvent(int bytesReceived) {
   Serial.print("Dato I2C recibido: ");
-  char bufferr[MAX_SIZE]={0};
+  char buffer[MAX_SIZE]={0};
   int i=0;
   while (Wire.available()) { // Si hay datos disponibles en el buffer de recepción
     char c = Wire.read(); // Lee el byte recibido
-    bufferr[i]= c;
+    buffer[i]= c;
     i++;
     Serial.print(c); // Muestra el byte recibido en el puerto serie
   }
 
-  if (bufferr[0]=='P'){
+  Serial.println("");
+
+  if (buffer[0] == STARTING_BYTE_RECEIVE) {
     // Serial.println("Pedido Leer Dato!");
     enviarSize=true;
-  }
-  Serial.println("");
-  switch (0x00) {
-    case 0x00:        //Telemetria
-    {
-        Serial.print("Enviando TM por UDP: ");
-        Serial.println(bufferr);
-        
-        //?
-        int packetSize2 = udp_TM.parsePacket(); 
+  } else if (buffer[0] == STARTING_BYTE_SEND) {
+    Serial.print("Enviando TM por UDP: ");
+    Serial.println(buffer);
 
-        udp_TM.beginPacket(udp_TM.remoteIP(), udp_TM.remotePort());
-        udp_TM.print(bufferr);
-        udp_TM.endPacket();
-        break;
-    }
-    case 0x01:    //responder TC request o ACK de TC por UDP
-    {
-        udp_TCresponse.beginPacket(udp_TCresponse.remoteIP(), udp_TCresponse.remotePort());
-        udp_TCresponse.print("Envio ACK");
-        udp_TCresponse.endPacket();
-        break;
-    }
-    default:
-    {
-      break;
-    }
-  } 
+    int packetSize2 = udp_TM.parsePacket();
+
+    udp_TM.beginPacket(udp_TM.remoteIP(), udp_TM.remotePort());
+    udp_TM.print(buffer);
+    udp_TM.endPacket();
+  }
 }
 
 
@@ -173,6 +161,15 @@ void requestEvent() {
         Serial.println("");
         Serial.println("");
 
+  } else {  // If queue is empty we should check also if there was a request and answer length = 0
+    if (enviarSize) {
+      Serial.println("Enviando largo.... ");
+      Serial.println("Enviando por I2C el tamaño del paquete: 0 (queue empty)");
+      enviarSize=false;
+      enviado_size=true;
+      Wire.write(0); // Envía del mensaje al maestro
+      Serial.println(WiFi.localIP());
+    }
   }
 }
 
