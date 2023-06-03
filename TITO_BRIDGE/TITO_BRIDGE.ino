@@ -4,10 +4,23 @@
 #include <string.h>
 
 #define SLAVE_ADDRESS 0x50 // Dirección del esclavo
-#define UDP_TX_PACKET_MAX_SIZE 15
+#define UDP_TX_PACKET_MAX_SIZE 1472
 #define MAX_QUEUE_SIZE 10  //Cantidad en FIFO
 #define MAX_SIZE  228     //Maximo bytes para i2c
 
+
+// Define las credenciales de red WiFi
+const char* ssid = "CONECTAR1354";
+const char* password = "309997609";
+IPAddress local_IP(192, 168, 200, 100);  // Dirección IP fija del ESP32
+IPAddress gateway(192, 168, 1, 1);   // Dirección IP del gateway de la red
+IPAddress subnet(255, 255, 255, 0);  // Máscara de subred de la red
+IPAddress ip(192, 168, 1, 100); // Dirección IP del destinatario
+
+// Define los puertos UDP a utilizar
+unsigned int port_TC = 51524;       
+unsigned int port_TCresponse = 51525;
+unsigned int port_TM = 51526;
 
 
 class CircularQueue {
@@ -70,6 +83,11 @@ private:
 
 CircularQueue CircularQueue;
 
+CircularQueue circularQueue;
+
+// Crea los objetos WiFi y UDP
+WiFiUDP udp_TC, udp_TCresponse, udp_TM;
+
 bool enviarSize;
 
 void receiveEvent(int bytesReceived) {
@@ -88,12 +106,38 @@ void receiveEvent(int bytesReceived) {
     enviarSize=true;
   }
   Serial.println("");
+
+  switch (0x00) {
+    case 0x00:        //Telemetria
+    {
+        Serial.print("Enviando TM por UDP: ");
+        Serial.println(bufferr);
+        
+        //?
+        int packetSize2 = udp_TM.parsePacket(); 
+
+        udp_TM.beginPacket(udp_TM.remoteIP(), udp_TM.remotePort());
+        udp_TM.print(bufferr);
+        udp_TM.endPacket();
+        break;
+    }
+    case 0x01:    //responder TC request o ACK de TC por UDP
+    {
+        udp_TCresponse.beginPacket(udp_TCresponse.remoteIP(), udp_TCresponse.remotePort());
+        udp_TCresponse.print("Envio ACK");
+        udp_TCresponse.endPacket();
+        break;
+    }
+    default:
+    {
+      break;
+    }
+  } 
 }
 
 
 bool enviado_size=false;
 
- 
 
 void requestEvent() {  
   if (!CircularQueue.isEmpty()) {           //Busco en FIFO
@@ -146,12 +190,39 @@ void setup() {
   Wire.onReceive(receiveEvent); // Función que se llamará cuando se reciba un mensaje
   Wire.onRequest(requestEvent); // Función que se llamará cuando se soliciten datos
   
+  //WiFi.config(local_IP, gateway, subnet);
+  // Inicializa la conexión WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Conectando a la red WiFi...");
+  }
+  Serial.println("Conectado a la red WiFi.");
+  Serial.print("Dirección IP asignada: ");
+  Serial.println(WiFi.localIP());
+  
+  // Inicializa el servicio mDNS
+  if (!MDNS.begin("TITO")) {
+    Serial.println("Error al iniciar el servicio mDNS");
+  } else {
+    Serial.println("Servicio mDNS iniciado con éxito");
+    MDNS.addService("udp", "port_TC", port_TC);
+    MDNS.addService("udp", "port_TCresponse", port_TCresponse);
+    MDNS.addService("udp", "port_TM", port_TM);
+  }
 
+  
+  // Inicializa los objetos UDP
+  udp_TC.begin(port_TC);
+  udp_TCresponse.begin(port_TCresponse);
+  udp_TM.begin(port_TM);
 
-  Serial.print("Esp32 prendido....");
-
-
-
+  Serial.print("Servidor UDP iniciado en los puertos: ");
+  Serial.print(port_TC);
+  Serial.print(", ");
+  Serial.print(port_TCresponse);
+  Serial.print(", ");
+  Serial.println(port_TM);
 
 }
 char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
@@ -159,18 +230,15 @@ char size;
 int i;
 
 void loop(){
- 
-  i++;
-  Serial.print("Agregar a la Cola");
-  Serial.println("");
-//  strncpy("packet", packetBuffer,UDP_TX_PACKET_MAX_SIZE);
-    int numDigits = floor(log10(abs(i))) + 1;
-    snprintf(packetBuffer, sizeof(packetBuffer), "paquete %d", i);
-    int len = sizeof(packetBuffer);
-//      int len = 9 + numDigits;
-//    size = strtol(std::to_string(len).c_str(), nullptr, 10);
+
+int packetSize = udp_TC.parsePacket();
+  if (packetSize) {
+    char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
+    udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);// Lee el mensaje recibido
+    Serial.print("TC recibido: ");
     Serial.println(packetBuffer);
-//    Serial.println(len);
-    CircularQueue.enqueue(packetBuffer,len); 
-    delay(2000);
+    circularQueue.enqueue(packetBuffer,packetSize);//Agrego dato a FIFO
+  }
+  int packetSize3 = udp_TM.parsePacket();
+  int packetSize2 = udp_TCresponse.parsePacket();
   }
