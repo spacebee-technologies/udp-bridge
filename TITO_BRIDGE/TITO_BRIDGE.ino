@@ -10,7 +10,6 @@
 #define MAX_QUEUE_SIZE 10  //Cantidad en FIFO
 #define MAX_SIZE  228     //Maximo bytes para i2c
 
-
 // Define las credenciales de red WiFi
 const char* ssid = "CONECTAR1354";
 const char* password = "309997609";
@@ -106,7 +105,6 @@ void receiveEvent(int bytesReceived) {
     enviarSize=true;
   }
   Serial.println("");
-
   switch (0x00) {
     case 0x00:        //Telemetria
     {
@@ -178,12 +176,6 @@ void requestEvent() {
   }
 }
 
-
-
-
-
-
-
 void setup() {
   Serial.begin(115200);
   Wire.begin(SLAVE_ADDRESS); // Inicializa la comunicación I2C como esclavo
@@ -223,7 +215,6 @@ void setup() {
   Serial.print(port_TCresponse);
   Serial.print(", ");
   Serial.println(port_TM);
-
   circularQueue = CircularQueue();
 }
 
@@ -231,7 +222,8 @@ char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
 char size;
 int i;
 
-void loop(){
+void loop() {
+  // Espera a recibir datos en el puerto 3 para recibir TC
   int packetSize = udp_TC.parsePacket();
   if (packetSize) {
     char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
@@ -242,4 +234,4 @@ void loop(){
   }
   int packetSize3 = udp_TM.parsePacket();
   int packetSize2 = udp_TCresponse.parsePacket();
-  }
+}
