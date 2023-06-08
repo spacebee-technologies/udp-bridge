@@ -28,6 +28,7 @@ typedef enum StartingByte {
   STARTING_BYTE_SEND = 'S'
 } StartingByte_t;
 
+// Circular Queue para guardar mensajes upd recividos hasta que los solicite el master
 class CircularQueue {
 public:
     CircularQueue() {
@@ -81,19 +82,22 @@ public:
 
 private:
     //Max packet size is 65,535 bytes 
+    //Se almacena el paquete, el size del paquete 
     char packets[MAX_QUEUE_SIZE][MAX_SIZE];
     int size_packets[MAX_QUEUE_SIZE]; 
     int front, rear;
 };
+
 
 CircularQueue circularQueue;
 
 // Crea los objetos WiFi y UDP
 WiFiUDP udp_TC, udp_TCresponse, udp_TM;
 
-bool enviarSize;
+bool enviarSize; // Variable que determina si se tiene que enviar el size del paquete.
 
 void receiveEvent(int bytesReceived) {
+  // Esta funcion se ejecuta siempre que el maestro envia un dato (master write)
   Serial.print("Dato I2C recibido: ");
   char buffer[MAX_SIZE]={0};
   int i=0;
@@ -107,9 +111,12 @@ void receiveEvent(int bytesReceived) {
   Serial.println("");
 
   if (buffer[0] == STARTING_BYTE_RECEIVE) {
+    // El master solicita leer el mensaje, por lo tanto se envia el size del paquete primero.
     // Serial.println("Pedido Leer Dato!");
     enviarSize=true;
+
   } else if (buffer[0] == STARTING_BYTE_SEND) {
+    // Se envia el paquete recivido por el maestro a traves de WiFi
     Serial.print("Enviando TM por UDP: ");
     Serial.println(buffer);
 
@@ -122,22 +129,23 @@ void receiveEvent(int bytesReceived) {
 }
 
 
-bool enviado_size=false;
+bool enviado_size=false; //Variable que indica si ya se envio el size.
 
 
 void requestEvent() {  
+    // Esta funcion se ejecuta siempre que el maestro solicita un dato (master read)
   if (!circularQueue.isEmpty()) {           //Busco en FIFO
      
     char packet[MAX_SIZE];
     int packet_size;
 
     if (enviado_size){
+      // El paquete ya esta cargado en el buffer del I2C. Por lo que se lee. 
+
       Serial.println("Paquete enviado ");
-
-
       enviado_size=false;
-    
     }
+
     if (enviarSize){  
       circularQueue.denqueue(packet,packet_size);
 
@@ -150,13 +158,11 @@ void requestEvent() {
       enviarSize=false;
       enviado_size=true;
       
-
-      
       Wire.write(packet_size); // Envía del mensaje al maestro
       Wire.write(reinterpret_cast<byte*>(packet),packet_size); // Send the array to the master
+   
+      // Se escribe en el buffer del I2C, en el primer byte el size del paquete, luego se escribre el paquete.  
     }
-
-
 
         Serial.println("");
         Serial.println("");
