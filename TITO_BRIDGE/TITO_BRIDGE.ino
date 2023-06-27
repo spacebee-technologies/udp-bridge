@@ -11,8 +11,8 @@
 #define MAX_SIZE  228     //Maximo bytes para i2c
 
 // Define las credenciales de red WiFi
-const char* ssid = "CONECTAR1354";
-const char* password = "309997609";
+const char* ssid = "Personal-21C-2.4GHz";
+const char* password = "4BD447221C";
 IPAddress local_IP(192, 168, 200, 100);  // Dirección IP fija del ESP32
 IPAddress gateway(192, 168, 1, 1);   // Dirección IP del gateway de la red
 IPAddress subnet(255, 255, 255, 0);  // Máscara de subred de la red
@@ -141,19 +141,18 @@ void requestEvent() {
 
     if (enviado_size){
       // El paquete ya esta cargado en el buffer del I2C. Por lo que se lee. 
-
-      Serial.println("Paquete enviado ");
+      //Serial.println("Paquete enviado ");
       enviado_size=false;
     }
 
     if (enviarSize){  
       circularQueue.denqueue(packet,packet_size);
 
-      Serial.println("Enviando largo.... ");
-      Serial.print("Enviando por I2C el tamaño del paquete: ");
-      Serial.println(packet_size);
-      Serial.print("Enviando por I2C el paquete: ");
-      Serial.println(packet);
+      // Serial.println("Enviando largo.... ");
+      // Serial.print("Enviando por I2C el tamaño del paquete: ");
+      // Serial.println(packet_size);
+      // Serial.print("Enviando por I2C el paquete: ");
+      // Serial.println(packet);
       
       enviarSize=false;
       enviado_size=true;
@@ -169,12 +168,12 @@ void requestEvent() {
 
   } else {  // If queue is empty we should check also if there was a request and answer length = 0
     if (enviarSize) {
-      Serial.println("Enviando largo.... ");
-      Serial.println("Enviando por I2C el tamaño del paquete: 0 (queue empty)");
+      // Serial.println("Enviando largo.... ");
+      // Serial.println("Enviando por I2C el tamaño del paquete: 0 (queue empty)");
       enviarSize=false;
       enviado_size=true;
-      Wire.write(0); // Envía del mensaje al maestro
-      Serial.println(WiFi.localIP());
+      Wire.write("0"); // Envía del mensaje al maestro
+      // Serial.println(WiFi.localIP());
     }
   }
 }
@@ -233,6 +232,7 @@ void loop() {
     udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);// Lee el mensaje recibido
     Serial.print("TC recibido: ");
     Serial.println(packetBuffer);
+    packetBuffer[packetSize]=0;
     circularQueue.enqueue(packetBuffer,packetSize);//Agrego dato a FIFO
   }
   int packetSize3 = udp_TM.parsePacket();
