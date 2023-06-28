@@ -33,7 +33,9 @@ CircularQueue circularQueue;
 // Crea los objetos WiFi y UDP
 WiFiUDP udp_TC, udp_TCresponse, udp_TM;
 
+// State machine variables
 bool enviarSize;  // Variable que determina si se tiene que enviar el size del paquete.
+bool enviado_size=false;  // Variable que indica si ya se envio el size.
 
 void receiveEvent(int bytesReceived) {
   // Esta funcion se ejecuta siempre que el maestro envia un dato (master write)
@@ -66,10 +68,6 @@ void receiveEvent(int bytesReceived) {
     udp_TM.endPacket();
   }
 }
-
-
-bool enviado_size=false; //Variable que indica si ya se envio el size.
-
 
 void requestEvent() {
   // Esta funcion se ejecuta siempre que el maestro solicita un dato (master read)
