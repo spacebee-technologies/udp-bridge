@@ -111,7 +111,7 @@ void requestEvent() {
       // Serial.println("Enviando por I2C el tamaño del paquete: 0 (queue empty)");
       enviarSize=false;
       enviado_size=true;
-      Wire.write("0"); // Envía del mensaje al maestro
+      Wire.write(0); // Envía del mensaje al maestro
       // Serial.println(WiFi.localIP());
     }
   }
