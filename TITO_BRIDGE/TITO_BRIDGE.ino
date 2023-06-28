@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SLAVE_ADDRESS 0x50 // Dirección del esclavo
+#include "circular_queue.h"
+
+#define SLAVE_ADDRESS 0x50  // Dirección del esclavo
 #define UDP_TX_PACKET_MAX_SIZE 1472
-#define MAX_QUEUE_SIZE 10  //Cantidad en FIFO
-#define MAX_SIZE  228     //Maximo bytes para i2c
 
 // Define las credenciales de red WiFi
 const char* ssid = "Personal-21C-2.4GHz";
@@ -19,7 +19,7 @@ IPAddress subnet(255, 255, 255, 0);  // Máscara de subred de la red
 IPAddress ip(192, 168, 1, 100); // Dirección IP del destinatario
 
 // Define los puertos UDP a utilizar
-unsigned int port_TC = 51524;       
+unsigned int port_TC = 51524;
 unsigned int port_TCresponse = 51525;
 unsigned int port_TM = 51526;
 
@@ -28,79 +28,18 @@ typedef enum StartingByte {
   STARTING_BYTE_SEND = 'S'
 } StartingByte_t;
 
-// Circular Queue para guardar mensajes upd recividos hasta que los solicite el master
-class CircularQueue {
-public:
-    CircularQueue() {
-        front = rear = -1;
-    }
-
-    bool isFull() {
-        return (front==0 && rear == MAX_QUEUE_SIZE - 1) || (rear==front-1);
-    }
-
-    bool isEmpty() {
-        return front == -1;
-    }
-
-    bool enqueue(char packet[MAX_SIZE], int size_packet) {
-        if (isFull()) {
-            return false;
-        }
-        if (front==-1){
-          front=0;
-        }
-
-        if (rear==MAX_QUEUE_SIZE - 1){
-          rear=0;
-        }
-        else{
-          rear++;
-        }
-        strncpy(packets[rear], packet, MAX_SIZE);
-        size_packets[rear]=size_packet;
-        return true;
-    }
-
-    bool denqueue(char packet[], int& size_packet) {
-        if (isEmpty()) {
-            return false;
-        }
-
-        strncpy(packet, packets[front], MAX_SIZE);
-        size_packet=size_packets[front];
-
-        if (rear==front){
-          rear=-1;
-          front=-1;
-        }
-        else{
-          front=front+1;          
-        }
-        return true;
-    }
-
-private:
-    //Max packet size is 65,535 bytes 
-    //Se almacena el paquete, el size del paquete 
-    char packets[MAX_QUEUE_SIZE][MAX_SIZE];
-    int size_packets[MAX_QUEUE_SIZE]; 
-    int front, rear;
-};
-
-
 CircularQueue circularQueue;
 
 // Crea los objetos WiFi y UDP
 WiFiUDP udp_TC, udp_TCresponse, udp_TM;
 
-bool enviarSize; // Variable que determina si se tiene que enviar el size del paquete.
+bool enviarSize;  // Variable que determina si se tiene que enviar el size del paquete.
 
 void receiveEvent(int bytesReceived) {
   // Esta funcion se ejecuta siempre que el maestro envia un dato (master write)
   Serial.print("Dato I2C recibido: ");
-  char buffer[MAX_SIZE]={0};
-  int i=0;
+  char buffer[CIRCULAR_QUEUE_ELEMENT_MAX_SIZE] = {0};
+  int i = 0;
   while (Wire.available()) { // Si hay datos disponibles en el buffer de recepción
     char c = Wire.read(); // Lee el byte recibido
     buffer[i]= c;
@@ -132,35 +71,35 @@ void receiveEvent(int bytesReceived) {
 bool enviado_size=false; //Variable que indica si ya se envio el size.
 
 
-void requestEvent() {  
-    // Esta funcion se ejecuta siempre que el maestro solicita un dato (master read)
+void requestEvent() {
+  // Esta funcion se ejecuta siempre que el maestro solicita un dato (master read)
   if (!circularQueue.isEmpty()) {           //Busco en FIFO
-     
-    char packet[MAX_SIZE];
+
+    char packet[CIRCULAR_QUEUE_ELEMENT_MAX_SIZE];
     int packet_size;
 
     if (enviado_size){
-      // El paquete ya esta cargado en el buffer del I2C. Por lo que se lee. 
+      // El paquete ya esta cargado en el buffer del I2C. Por lo que se lee.
       //Serial.println("Paquete enviado ");
       enviado_size=false;
     }
 
-    if (enviarSize){  
-      circularQueue.denqueue(packet,packet_size);
+    if (enviarSize){
+      circularQueue.denqueue(packet, packet_size);
 
       // Serial.println("Enviando largo.... ");
       // Serial.print("Enviando por I2C el tamaño del paquete: ");
       // Serial.println(packet_size);
       // Serial.print("Enviando por I2C el paquete: ");
       // Serial.println(packet);
-      
+
       enviarSize=false;
       enviado_size=true;
-      
+
       Wire.write(packet_size); // Envía del mensaje al maestro
       Wire.write(reinterpret_cast<byte*>(packet),packet_size); // Send the array to the master
-   
-      // Se escribe en el buffer del I2C, en el primer byte el size del paquete, luego se escribre el paquete.  
+
+      // Se escribe en el buffer del I2C, en el primer byte el size del paquete, luego se escribre el paquete.
     }
 
         Serial.println("");
@@ -183,8 +122,7 @@ void setup() {
   Wire.begin(SLAVE_ADDRESS); // Inicializa la comunicación I2C como esclavo
   Wire.onReceive(receiveEvent); // Función que se llamará cuando se reciba un mensaje
   Wire.onRequest(requestEvent); // Función que se llamará cuando se soliciten datos
-  
-  //WiFi.config(local_IP, gateway, subnet);
+
   // Inicializa la conexión WiFi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -194,7 +132,7 @@ void setup() {
   Serial.println("Conectado a la red WiFi.");
   Serial.print("Dirección IP asignada: ");
   Serial.println(WiFi.localIP());
-  
+
   // Inicializa el servicio mDNS
   if (!MDNS.begin("TITO")) {
     Serial.println("Error al iniciar el servicio mDNS");
@@ -205,7 +143,6 @@ void setup() {
     MDNS.addService("udp", "port_TM", port_TM);
   }
 
-  
   // Inicializa los objetos UDP
   udp_TC.begin(port_TC);
   udp_TCresponse.begin(port_TCresponse);
@@ -220,20 +157,16 @@ void setup() {
   circularQueue = CircularQueue();
 }
 
-char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
-char size;
-int i;
-
 void loop() {
   // Espera a recibir datos en el puerto 3 para recibir TC
   int packetSize = udp_TC.parsePacket();
   if (packetSize) {
     char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
-    udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);// Lee el mensaje recibido
+    udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);  // Lee el mensaje recibido
     Serial.print("TC recibido: ");
     Serial.println(packetBuffer);
     packetBuffer[packetSize]=0;
-    circularQueue.enqueue(packetBuffer,packetSize);//Agrego dato a FIFO
+    circularQueue.enqueue(packetBuffer, packetSize);  // Agrego dato a FIFO
   }
   int packetSize3 = udp_TM.parsePacket();
   int packetSize2 = udp_TCresponse.parsePacket();
