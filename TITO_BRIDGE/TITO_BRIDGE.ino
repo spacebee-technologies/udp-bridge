@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "circular_queue.h"
+#include "communication_sequence.h"
 
 #define SLAVE_ADDRESS 0x50  // Dirección del esclavo
 #define UDP_TX_PACKET_MAX_SIZE 1472
@@ -23,19 +24,11 @@ unsigned int port_TC = 51524;
 unsigned int port_TCresponse = 51525;
 unsigned int port_TM = 51526;
 
-typedef enum StartingByte {
-  STARTING_BYTE_RECEIVE = 'P',
-  STARTING_BYTE_SEND = 'S'
-} StartingByte_t;
-
 CircularQueue circularQueue;
+CommunicationSequence communicationSequence;
 
 // Crea los objetos WiFi y UDP
 WiFiUDP udp_TC, udp_TCresponse, udp_TM;
-
-// State machine variables
-bool enviarSize;  // Variable que determina si se tiene que enviar el size del paquete.
-bool enviado_size=false;  // Variable que indica si ya se envio el size.
 
 void receiveEvent(int bytesReceived) {
   // Esta funcion se ejecuta siempre que el maestro envia un dato (master write)
@@ -49,70 +42,11 @@ void receiveEvent(int bytesReceived) {
     Serial.print(c); // Muestra el byte recibido en el puerto serie
   }
 
-  Serial.println("");
-
-  if (buffer[0] == STARTING_BYTE_RECEIVE) {
-    // El master solicita leer el mensaje, por lo tanto se envia el size del paquete primero.
-    // Serial.println("Pedido Leer Dato!");
-    enviarSize=true;
-
-  } else if (buffer[0] == STARTING_BYTE_SEND) {
-    // Se envia el paquete recivido por el maestro a traves de WiFi
-    Serial.print("Enviando TM por UDP: ");
-    Serial.println(buffer);
-
-    int packetSize2 = udp_TM.parsePacket();
-
-    udp_TM.beginPacket(udp_TM.remoteIP(), udp_TM.remotePort());
-    udp_TM.print(buffer);
-    udp_TM.endPacket();
-  }
+  communicationSequence.handleReceive(buffer, i, &udp_TM);
 }
 
 void requestEvent() {
-  // Esta funcion se ejecuta siempre que el maestro solicita un dato (master read)
-  if (!circularQueue.isEmpty()) {           //Busco en FIFO
-
-    char packet[CIRCULAR_QUEUE_ELEMENT_MAX_SIZE];
-    int packet_size;
-
-    if (enviado_size){
-      // El paquete ya esta cargado en el buffer del I2C. Por lo que se lee.
-      //Serial.println("Paquete enviado ");
-      enviado_size=false;
-    }
-
-    if (enviarSize){
-      circularQueue.denqueue(packet, packet_size);
-
-      // Serial.println("Enviando largo.... ");
-      // Serial.print("Enviando por I2C el tamaño del paquete: ");
-      // Serial.println(packet_size);
-      // Serial.print("Enviando por I2C el paquete: ");
-      // Serial.println(packet);
-
-      enviarSize=false;
-      enviado_size=true;
-
-      Wire.write(packet_size); // Envía del mensaje al maestro
-      Wire.write(reinterpret_cast<byte*>(packet),packet_size); // Send the array to the master
-
-      // Se escribe en el buffer del I2C, en el primer byte el size del paquete, luego se escribre el paquete.
-    }
-
-        Serial.println("");
-        Serial.println("");
-
-  } else {  // If queue is empty we should check also if there was a request and answer length = 0
-    if (enviarSize) {
-      // Serial.println("Enviando largo.... ");
-      // Serial.println("Enviando por I2C el tamaño del paquete: 0 (queue empty)");
-      enviarSize=false;
-      enviado_size=true;
-      Wire.write(0); // Envía del mensaje al maestro
-      // Serial.println(WiFi.localIP());
-    }
-  }
+  communicationSequence.handleRequest(&circularQueue);
 }
 
 void setup() {
@@ -152,7 +86,12 @@ void setup() {
   Serial.print(port_TCresponse);
   Serial.print(", ");
   Serial.println(port_TM);
+
+  // Init queue
   circularQueue = CircularQueue();
+
+  // Init communication sequence
+  communicationSequence = CommunicationSequence();
 }
 
 void loop() {
@@ -163,7 +102,6 @@ void loop() {
     udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);  // Lee el mensaje recibido
     Serial.print("TC recibido: ");
     Serial.println(packetBuffer);
-    packetBuffer[packetSize]=0;
     circularQueue.enqueue(packetBuffer, packetSize);  // Agrego dato a FIFO
   }
   int packetSize3 = udp_TM.parsePacket();
