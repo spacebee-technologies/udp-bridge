@@ -41,7 +41,7 @@ void receiveEvent(int bytesReceived) {
     i++;
     Serial.print(c); // Muestra el byte recibido en el puerto serie
   }
-
+  Serial.println("");
   communicationSequence.handleReceive(buffer, i, &udp_TM);
 }
 
@@ -100,6 +100,7 @@ void loop() {
   if (packetSize) {
     char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
     udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);  // Lee el mensaje recibido
+    packetBuffer[packetSize]=0;
     Serial.print("TC recibido: ");
     Serial.println(packetBuffer);
     circularQueue.enqueue(packetBuffer, packetSize);  // Agrego dato a FIFO
