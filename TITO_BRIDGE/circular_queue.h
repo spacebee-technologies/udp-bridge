@@ -11,11 +11,12 @@ class CircularQueue {
     CircularQueue();
     bool isFull();
     bool isEmpty();
-    bool enqueue(char packet[]);
-    bool denqueue(char packet[]);
+    bool enqueue(char packet[CIRCULAR_QUEUE_ELEMENT_MAX_SIZE], int size_packet);
+    bool denqueue(char packet[], int& size_packet);
 
   private:
     char _packets[CIRCULAR_QUEUE_FIFO_SIZE][CIRCULAR_QUEUE_ELEMENT_MAX_SIZE];
+    int _size_packets[CIRCULAR_QUEUE_FIFO_SIZE];
     int _front, _rear;
 };
 
