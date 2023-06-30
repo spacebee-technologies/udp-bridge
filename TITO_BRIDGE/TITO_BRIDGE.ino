@@ -35,7 +35,7 @@ void receiveEvent(int bytesReceived) {
   int i = 0;
   while (Wire.available()) { // Si hay datos disponibles en el buffer de recepción
     char c = Wire.read(); // Lee el byte recibido
-    buffer[i]= c;
+    buffer[i] = c;
     i++;
     Serial.print(c); // Muestra el byte recibido en el puerto serie
   }
