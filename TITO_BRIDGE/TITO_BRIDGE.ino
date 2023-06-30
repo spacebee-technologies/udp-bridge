@@ -19,16 +19,14 @@ IPAddress gateway(192, 168, 1, 1);   // Dirección IP del gateway de la red
 IPAddress subnet(255, 255, 255, 0);  // Máscara de subred de la red
 IPAddress ip(192, 168, 1, 100); // Dirección IP del destinatario
 
-// Define los puertos UDP a utilizar
-unsigned int port_TC = 51524;
-unsigned int port_TCresponse = 51525;
-unsigned int port_TM = 51526;
+// This application listens for UDP packets from the network in the following port
+unsigned int port = 51524;
 
 CircularQueue circularQueue;
 CommunicationSequence communicationSequence;
 
 // Crea los objetos WiFi y UDP
-WiFiUDP udp_TC;
+WiFiUDP udpHandler;
 
 void receiveEvent(int bytesReceived) {
   // Esta funcion se ejecuta siempre que el maestro envia un dato (master write)
@@ -70,20 +68,13 @@ void setup() {
     Serial.println("Error al iniciar el servicio mDNS");
   } else {
     Serial.println("Servicio mDNS iniciado con éxito");
-    MDNS.addService("udp", "port_TC", port_TC);
-    MDNS.addService("udp", "port_TCresponse", port_TCresponse);
-    MDNS.addService("udp", "port_TM", port_TM);
+    MDNS.addService("udp", "port", port);
   }
 
   // Inicializa los objetos UDP
-  udp_TC.begin(port_TC);
-
-  Serial.print("Servidor UDP iniciado en los puertos: ");
-  Serial.print(port_TC);
-  Serial.print(", ");
-  Serial.print(port_TCresponse);
-  Serial.print(", ");
-  Serial.println(port_TM);
+  udpHandler.begin(port);
+  Serial.print("UDP server started at port: ");
+  Serial.print(port);
 
   // Init queue
   circularQueue = CircularQueue();
@@ -94,10 +85,10 @@ void setup() {
 
 void loop() {
   // Espera a recibir datos en el puerto 3 para recibir TC
-  int packetSize = udp_TC.parsePacket();
+  int packetSize = udpHandler.parsePacket();
   if (packetSize) {
     char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
-    udp_TC.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);  // Lee el mensaje recibido
+    udpHandler.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);  // Lee el mensaje recibido
     packetBuffer[packetSize]=0;
     Serial.print("TC recibido: ");
     Serial.println(packetBuffer);
