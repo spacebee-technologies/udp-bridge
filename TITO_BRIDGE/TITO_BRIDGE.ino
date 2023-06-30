@@ -28,7 +28,7 @@ CircularQueue circularQueue;
 CommunicationSequence communicationSequence;
 
 // Crea los objetos WiFi y UDP
-WiFiUDP udp_TC, udp_TCresponse, udp_TM;
+WiFiUDP udp_TC;
 
 void receiveEvent(int bytesReceived) {
   // Esta funcion se ejecuta siempre que el maestro envia un dato (master write)
@@ -42,7 +42,7 @@ void receiveEvent(int bytesReceived) {
     Serial.print(c); // Muestra el byte recibido en el puerto serie
   }
   Serial.println("");
-  communicationSequence.handleReceive(buffer, i, &udp_TM);
+  communicationSequence.handleReceive(buffer, i);
 }
 
 void requestEvent() {
@@ -77,8 +77,6 @@ void setup() {
 
   // Inicializa los objetos UDP
   udp_TC.begin(port_TC);
-  udp_TCresponse.begin(port_TCresponse);
-  udp_TM.begin(port_TM);
 
   Serial.print("Servidor UDP iniciado en los puertos: ");
   Serial.print(port_TC);
@@ -105,6 +103,4 @@ void loop() {
     Serial.println(packetBuffer);
     circularQueue.enqueue(packetBuffer, packetSize);  // Agrego dato a FIFO
   }
-  int packetSize3 = udp_TM.parsePacket();
-  int packetSize2 = udp_TCresponse.parsePacket();
 }

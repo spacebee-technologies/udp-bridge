@@ -12,12 +12,12 @@ CommunicationSequence::CommunicationSequence() {
   _state = COMMUNICATION_SEQUENCE_STATE_IDLE;
 }
 
-uint8_t CommunicationSequence::handleReceive(char *buffer, size_t bufferSize, WiFiUDP *udp) {
+uint8_t CommunicationSequence::handleReceive(char *buffer, size_t bufferSize) {
   switch (_state) {
     case COMMUNICATION_SEQUENCE_STATE_IDLE:
       return executeStateIdle(buffer, bufferSize);
     case COMMUNICATION_SEQUENCE_STATE_TX_WAIT_PACKET:
-      return executeStateTxWaitPacket(buffer, udp);
+      return executeStateTxWaitPacket(buffer);
     default:
       return 1;
   }
@@ -41,12 +41,13 @@ void CommunicationSequence::transitionToState(CommunicationSequenceState_t state
 }
 
 uint8_t CommunicationSequence::executeStateIdle(char *buffer, size_t bufferSize) {
-  if (bufferSize != 1) { return 1; }
+  if (bufferSize != 1 && bufferSize != 3) { return 1; }
   switch (buffer[0]) {
     case STARTING_BYTE_RECEIVE:
       transitionToState(COMMUNICATION_SEQUENCE_STATE_RX_WAIT_LENGTH_REQUEST);
       return 0;
     case STARTING_BYTE_SEND:
+      _destinationPort = buffer[1] << 8 | buffer[2];
       transitionToState(COMMUNICATION_SEQUENCE_STATE_TX_WAIT_PACKET);
       return 0;
     default:
@@ -73,13 +74,15 @@ void CommunicationSequence::executeStateRxWaitPacketRequest() {
   transitionToState(COMMUNICATION_SEQUENCE_STATE_IDLE);
 }
 
-uint8_t CommunicationSequence::executeStateTxWaitPacket(char *buffer, WiFiUDP *udp) {
+uint8_t CommunicationSequence::executeStateTxWaitPacket(char *buffer) {
   Serial.print("Sending UDP packet to PC: ");
   Serial.println(buffer);
-  udp->parsePacket();
-  udp->beginPacket(udp->remoteIP(), udp->remotePort());
-  udp->print(buffer);
-  udp->endPacket();
+  _udp.begin(_destinationPort);
+  _udp.parsePacket();
+  _udp.beginPacket(_udp.remoteIP(), _udp.remotePort());
+  _udp.print(buffer);
+  _udp.endPacket();
+  _udp.stop();
   transitionToState(COMMUNICATION_SEQUENCE_STATE_IDLE);
   return 0;
 }
