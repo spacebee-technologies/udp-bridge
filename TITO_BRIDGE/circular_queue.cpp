@@ -24,14 +24,15 @@ bool CircularQueue::enqueue(char packet[CIRCULAR_QUEUE_ELEMENT_MAX_SIZE], int si
   } else {
     _rear++;
   }
-  strncpy(_packets[_rear], packet, CIRCULAR_QUEUE_ELEMENT_MAX_SIZE);
+  if (size_packet > CIRCULAR_QUEUE_ELEMENT_MAX_SIZE) { return false; }
+  memcpy(_packets[_rear], packet, size_packet);
   _size_packets[_rear] = size_packet;
   return true;
 }
 
 bool CircularQueue::denqueue(char packet[], int& size_packet) {
   if (isEmpty()) { return false; }
-  strncpy(packet, _packets[_front], CIRCULAR_QUEUE_ELEMENT_MAX_SIZE);
+  memcpy(packet, _packets[_front], _size_packets[_front]);
   size_packet = _size_packets[_front];
   if (_rear == _front){
     _rear = -1;
