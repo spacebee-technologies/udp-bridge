@@ -17,7 +17,7 @@ uint8_t CommunicationSequence::handleReceive(char *buffer, size_t bufferSize) {
     case COMMUNICATION_SEQUENCE_STATE_IDLE:
       return executeStateIdle(buffer, bufferSize);
     case COMMUNICATION_SEQUENCE_STATE_TX_WAIT_PACKET:
-      return executeStateTxWaitPacket(buffer);
+      return executeStateTxWaitPacket(buffer, bufferSize);
     default:
       return 1;
   }
@@ -74,13 +74,14 @@ void CommunicationSequence::executeStateRxWaitPacketRequest() {
   transitionToState(COMMUNICATION_SEQUENCE_STATE_IDLE);
 }
 
-uint8_t CommunicationSequence::executeStateTxWaitPacket(char *buffer) {
-  Serial.print("Sending UDP packet to PC: ");
-  Serial.println(buffer);
+uint8_t CommunicationSequence::executeStateTxWaitPacket(char *buffer, size_t bufferSize) {
+  Serial.print("Sending UDP packet to PC: 0x");
+  for (int i = 0; i < bufferSize; i++) { Serial.print(buffer[i], HEX); }
+  Serial.println("");
   _udp.begin(_destinationPort);
   _udp.parsePacket();
   _udp.beginPacket(_udp.remoteIP(), _udp.remotePort());
-  _udp.print(buffer);
+  _udp.write((uint8_t *)buffer, bufferSize);
   _udp.endPacket();
   _udp.stop();
   transitionToState(COMMUNICATION_SEQUENCE_STATE_IDLE);

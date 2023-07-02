@@ -30,7 +30,7 @@ class CommunicationSequence {
     uint8_t executeStateIdle(char *buffer, size_t bufferSize);
     void executeStateRxWaitLengthRequest(CircularQueue *queue);
     void executeStateRxWaitPacketRequest();
-    uint8_t executeStateTxWaitPacket(char *buffer);
+    uint8_t executeStateTxWaitPacket(char *buffer, size_t bufferSize);
 };
 
 #endif  // COMMUNICATION_SEQUENCE_H_
