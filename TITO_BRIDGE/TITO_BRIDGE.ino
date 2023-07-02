@@ -30,14 +30,14 @@ WiFiUDP udpHandler;
 
 void receiveEvent(int bytesReceived) {
   // Esta funcion se ejecuta siempre que el maestro envia un dato (master write)
-  Serial.print("Dato I2C recibido: ");
+  Serial.print("Dato I2C recibido: 0x");
   char buffer[CIRCULAR_QUEUE_ELEMENT_MAX_SIZE] = {0};
   int i = 0;
   while (Wire.available()) { // Si hay datos disponibles en el buffer de recepción
     char c = Wire.read(); // Lee el byte recibido
     buffer[i] = c;
     i++;
-    Serial.print(c); // Muestra el byte recibido en el puerto serie
+    Serial.print(c, HEX);  // Muestra el byte recibido en el puerto serie
   }
   Serial.println("");
   communicationSequence.handleReceive(buffer, i);
