@@ -30,16 +30,16 @@ WiFiUDP udpHandler;
 
 void receiveEvent(int bytesReceived) {
   // Esta funcion se ejecuta siempre que el maestro envia un dato (master write)
-  Serial.print("Dato I2C recibido: 0x");
+  // Serial.print("Dato I2C recibido: 0x");
   char buffer[CIRCULAR_QUEUE_ELEMENT_MAX_SIZE] = {0};
   int i = 0;
   while (Wire.available()) { // Si hay datos disponibles en el buffer de recepción
     char c = Wire.read(); // Lee el byte recibido
     buffer[i] = c;
     i++;
-    Serial.print(c, HEX);  // Muestra el byte recibido en el puerto serie
+    // Serial.print(c, HEX);  // Muestra el byte recibido en el puerto serie
   }
-  Serial.println("");
+  // Serial.println("");
   communicationSequence.handleReceive(buffer, i);
 }
 
@@ -91,7 +91,12 @@ void loop() {
     udpHandler.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);  // Lee el mensaje recibido
     packetBuffer[packetSize]=0;
     Serial.print("TC recibido: ");
-    Serial.println(packetBuffer);
+    for (int i = 0; i < packetSize; i++) {
+      Serial.print(packetBuffer[i], HEX);  // Print each byte in hexadecimal format
+      Serial.print(" ");
+    }
+    Serial.println();  // Print a new line after the hexadecimal output
     circularQueue.enqueue(packetBuffer, packetSize);  // Agrego dato a FIFO
   }
 }
+

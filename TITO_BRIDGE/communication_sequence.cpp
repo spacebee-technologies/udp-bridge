@@ -75,9 +75,9 @@ void CommunicationSequence::executeStateRxWaitPacketRequest() {
 }
 
 uint8_t CommunicationSequence::executeStateTxWaitPacket(char *buffer, size_t bufferSize) {
-  Serial.print("Sending UDP packet to PC: 0x");
-  for (int i = 0; i < bufferSize; i++) { Serial.print(buffer[i], HEX); }
-  Serial.println("");
+  // Serial.print("Sending UDP packet to PC: 0x");
+  // for (int i = 0; i < bufferSize; i++) { Serial.print(buffer[i], HEX); }
+  // Serial.println("");
   _udp.begin(_destinationPort);
   _udp.parsePacket();
   _udp.beginPacket(_udp.remoteIP(), _udp.remotePort());
